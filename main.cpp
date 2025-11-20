@@ -4,9 +4,10 @@
 PwmOut leftMotor(PTA2);
 DigitalOut leftForwardControl(PTA1);
 DigitalOut leftBackwardControl(PTD4);
+
 PwmOut rightMotor(PTA12);
-DigitalOut rightForwardControl(PTA4);
-DigitalOut rightBackwardControl(PTA5);
+DigitalOut rightForwardControl(PTA5);
+DigitalOut rightBackwardControl(PTA4);
 Timer T;
 
 // main() runs in its own thread in the OS
@@ -22,15 +23,15 @@ int main()
     while (true) {
         leftMotor = 0.5;
         rightMotor = 0.5;
-        rightForwardControl = 1;
-        leftForwardControl = 1;
+        rightBackwardControl = 1;
+        leftBackwardControl = 1;
 
-        if ((T.elapsed_time().count() % 10000000) == 0) { //if timer is at a multiple 10s
-            rightForwardControl = !rightForwardControl;
-            leftForwardControl = !leftForwardControl;
-            rightBackwardControl = !rightBackwardControl;
-            leftBackwardControl = !leftBackwardControl;
-        }
+        // if ((T.elapsed_time().count() % 10000000) == 0) { //if timer is at a multiple 10s
+        //     rightForwardControl = !rightForwardControl;
+        //     leftForwardControl = !leftForwardControl;
+        //     rightBackwardControl = !rightBackwardControl;
+        //     leftBackwardControl = !leftBackwardControl;
+        // }
 
     }
 }
