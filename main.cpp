@@ -1,16 +1,26 @@
 #include "mbed.h"
 #include "RoverControl.hpp"
 
-// main() runs in its own thread in the OS
 int main()
 {
-    leftForwardControl = 0;
-    leftBackwardControl = 0;
-    rightForwardControl = 0;
-    rightBackwardControl = 0;
+    stop();
+    float period = 0.01;
+    float duty = 0.25;
+    powerLED.period(2);
     while (true) {
-        forward(10000000, 0.5);
-        reverse(10000000, 0.5);
+        powerLED.write(0.25);
+        // ---- Move Forward 10 seconds ----
+        forward(duty, period);  // one forward call
+
+        // ---- Stop 5 seconds ----
+        wait_us(5000000);
+        stop();
+
+        // ---- Move Reverse 10 seconds ----
+        reverse(duty, period);  // one  reverse call
+
+        // ---- Stop 5 seconds ----
+        wait_us(5000000);
+        stop();
     }
 }
-

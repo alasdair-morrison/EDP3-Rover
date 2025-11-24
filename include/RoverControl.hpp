@@ -1,18 +1,38 @@
 #include "mbed.h"
 #include "PinOut.hpp"
 
-void forward(int time, float duty) {
-    leftMotor.period(0.01);
-    rightMotor.period(0.01);
-    leftForwardControl = 1;
+void forward(float duty, float period) {
+    leftMotor.period(period);
+    rightMotor.period(period);
+
+    leftMotor.write(duty);
+    rightMotor.write(duty);
+
+    leftBackwardControl = 0;
+    rightBackwardControl = 0;
+    leftForwardControl  = 1;
     rightForwardControl = 1;
-    wait_us(time);
 }
 
-void reverse(int time, float duty) {
-    leftMotor.period(0.01);
-    rightMotor.period(0.01);
+void reverse(float duty, float period) {
+    leftMotor.period(period);
+    rightMotor.period(period);
+
+    leftMotor.write(duty);
+    rightMotor.write(duty);
+
+    leftForwardControl  = 0;
+    rightForwardControl = 0;
     leftBackwardControl = 1;
     rightBackwardControl = 1;
-    wait_us(time);
+}
+
+void stop() {
+    leftMotor.write(0.0f);
+    rightMotor.write(0.0f);
+
+    leftForwardControl  = 0;
+    leftBackwardControl = 0;
+    rightForwardControl = 0;
+    rightBackwardControl = 0;
 }
