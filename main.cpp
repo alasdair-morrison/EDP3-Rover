@@ -6,6 +6,8 @@ int main()
     stop();
     float period = 0.01;
     float duty = 0.25;
+    float dutyTurnRight = 0.5;
+    float dutyTurnLeft = 0.5;
     powerLED.period(2);
     while (true) {
         powerLED.write(0.25);

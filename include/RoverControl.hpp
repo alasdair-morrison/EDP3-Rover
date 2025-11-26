@@ -27,6 +27,32 @@ void reverse(float duty, float period) {
     rightBackwardControl = 1;
 }
 
+void turnLeft(float duty, float period) {
+    leftMotor.period(period);
+    rightMotor.period(period);
+
+    leftMotor.write(duty);
+    rightMotor.write(duty);
+
+    leftForwardControl  = 0;
+    rightForwardControl = 1;
+    leftBackwardControl = 1;
+    rightBackwardControl = 0;
+}
+
+void turnRight(float duty, float period) {
+    leftMotor.period(period);
+    rightMotor.period(period);
+
+    leftMotor.write(duty);
+    rightMotor.write(duty);
+
+    leftForwardControl  = 1;
+    rightForwardControl = 0;
+    leftBackwardControl = 0;
+    rightBackwardControl = 1;
+}
+
 void stop() {
     leftMotor.write(0.0f);
     rightMotor.write(0.0f);
