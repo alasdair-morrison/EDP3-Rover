@@ -1,10 +1,8 @@
+#undef __ARM_FP
 #include "mbed.h"
 #include "PinOut.hpp"
 
-void forward(float duty, float period) {
-    leftMotor.period(period);
-    rightMotor.period(period);
-
+void forward(float duty) {
     leftMotor.write(duty);
     rightMotor.write(duty);
 
@@ -14,10 +12,7 @@ void forward(float duty, float period) {
     rightForwardControl = 1;
 }
 
-void reverse(float duty, float period) {
-    leftMotor.period(period);
-    rightMotor.period(period);
-
+void reverse(float duty) {
     leftMotor.write(duty);
     rightMotor.write(duty);
 
@@ -27,10 +22,7 @@ void reverse(float duty, float period) {
     rightBackwardControl = 1;
 }
 
-void turnLeft(float duty, float period) {
-    leftMotor.period(period);
-    rightMotor.period(period);
-
+void turnLeft(float duty) {
     leftMotor.write(duty);
     rightMotor.write(duty);
 
@@ -40,10 +32,7 @@ void turnLeft(float duty, float period) {
     rightBackwardControl = 0;
 }
 
-void turnRight(float duty, float period) {
-    leftMotor.period(period);
-    rightMotor.period(period);
-
+void turnRight(float duty) {
     leftMotor.write(duty);
     rightMotor.write(duty);
 
@@ -62,3 +51,4 @@ void stop() {
     rightForwardControl = 0;
     rightBackwardControl = 0;
 }
+
