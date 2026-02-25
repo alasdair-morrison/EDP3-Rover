@@ -12,8 +12,8 @@ DigitalOut rightBackwardControl(PTA4);
 PwmOut powerLED(LED_RED);
 
 //IR Sensor Pins
-DigitalIn leftIR(PTD1);
-DigitalIn middleIR(PTD3);
-DigitalIn rightIR(PTD2);
-DigitalIn rightTurnIR(PTD4);
-DigitalIn leftTurnIR(PTD5);
+DigitalIn leftIR(PTD3);
+DigitalIn middleIR(PTD2);
+DigitalIn rightIR(PTD5);
+DigitalIn rightTurnIR(PTD0);
+DigitalIn leftTurnIR(PTA13);
