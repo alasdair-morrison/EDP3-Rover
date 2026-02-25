@@ -2,14 +2,6 @@
 #include "mbed.h"
 #include "RoverControl.hpp"
 
-void rightDepart () {
-    rightMotor.write(1.1 * 0.25);
-}
-
-void leftDepart () {
-    leftMotor.write(1.1 * 0.25);
-}
-
 int main()
 {
     stop();
@@ -20,33 +12,27 @@ int main()
     powerLED.period(2);
     leftMotor.period(period);
     rightMotor.period(period);
-    leftInterrupt.fall(&leftDepart);
-    rightInterrupt.fall(&rightDepart);
 
     while (true) {
         powerLED.write(0.25);
-        forward(duty);
+        int leftValue = leftIR.read();
+        int rightValue = rightIR.read();
+
+        // If both sensors are on white, move forward
+        if (leftValue == 1 && rightValue == 1) {
+            forward(duty);
+        }
+        // Left sensor on black line, turn left
+        else if (leftValue == 0 && rightValue == 1) {
+            turnLeft(duty);
+        }
+        // Right sensor on black line, turn right
+        else if (leftValue == 1 && rightValue == 0) {
+            turnRight(duty);
+        }
+        // Both sensors on black, stop
+        else if (leftValue == 0 && rightValue == 0) {
+            stop();
+        }
     }
-
-    /*while (true) {
-      int leftValue = leftIR.read();
-      int rightValue = rightIR.read();
-
-      // If both sensors are on white, move forward
-      if (leftValue == 1 && rightValue == 1) {
-        forward(duty);
-      }
-      // Left sensor on black line, turn left
-      else if (leftValue == 0 && rightValue == 1) {
-        turnLeft(duty);
-      }
-      // Right sensor on black line, turn right
-      else if (leftValue == 1 && rightValue == 0) {
-        turnRight(duty);
-      }
-      // Both sensors on black, stop
-      else if (leftValue == 0 && rightValue == 0) {
-        stop();
-      }
-    }*/
 }
