@@ -15,3 +15,5 @@ PwmOut powerLED(LED_RED);
 DigitalIn leftIR(PTD1);
 DigitalIn middleIR(PTD3);
 DigitalIn rightIR(PTD2);
+DigitalIn rightTurnIR(PTD4);
+DigitalIn leftTurnIR(PTD5);
