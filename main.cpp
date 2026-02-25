@@ -27,4 +27,26 @@ int main()
         powerLED.write(0.25);
         forward(duty);
     }
+
+    /*while (true) {
+      int leftValue = leftIR.read();
+      int rightValue = rightIR.read();
+
+      // If both sensors are on white, move forward
+      if (leftValue == 1 && rightValue == 1) {
+        forward(duty);
+      }
+      // Left sensor on black line, turn left
+      else if (leftValue == 0 && rightValue == 1) {
+        turnLeft(duty);
+      }
+      // Right sensor on black line, turn right
+      else if (leftValue == 1 && rightValue == 0) {
+        turnRight(duty);
+      }
+      // Both sensors on black, stop
+      else if (leftValue == 0 && rightValue == 0) {
+        stop();
+      }
+    }*/
 }

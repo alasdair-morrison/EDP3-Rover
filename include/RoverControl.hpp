@@ -52,3 +52,12 @@ void stop() {
     rightBackwardControl = 0;
 }
 
+void cornerLeft(float duty) {
+    turnLeft(duty);
+    wait_us(20000);
+}
+
+void cornerRight(float duty) {
+    turnRight(duty);
+    wait_us(20000);
+}
