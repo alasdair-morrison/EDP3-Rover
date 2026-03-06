@@ -1,4 +1,5 @@
 #include "mbed.h"
+#include "RoverControl.hpp"
 
 DigitalIn Echo(PTA13);
 DigitalOut Trigger(PTD2);
@@ -6,8 +7,8 @@ DigitalOut LED(LED1);
 int FSM = 0;
 Timer High_Time;
 Timer Emergency_Timer;
-double Echo_High_Time;
-double Object_Distance;
+double Echo_High_Time = 0.0;
+double Object_Distance = 0.0;
 
 int main(){
 

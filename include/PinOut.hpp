@@ -17,3 +17,5 @@ DigitalIn middleIR(PTD2);
 DigitalIn rightIR(PTD5);
 DigitalIn rightTurnIR(PTD0);
 DigitalIn leftTurnIR(PTA13);
+
+//Ultrasonic Sensor Pins

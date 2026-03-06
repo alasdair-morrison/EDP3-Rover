@@ -59,5 +59,5 @@ void cornerLeft(float duty) {
 
 void cornerRight(float duty) {
     turnRight(duty);
-    wait_us(20000);
+    wait_us(18000);
 }

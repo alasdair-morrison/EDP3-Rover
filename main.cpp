@@ -20,6 +20,7 @@ int main()
         // If 90 degree right turn is needed
         if (rightTurnValue == 1 && rightValue == 1 && middleValue == 1 && leftValue == 1) {
             cornerRight(duty);
+            
         }
         // If 90 degree left turn is needed
         else if (leftTurnValue == 1 && leftValue == 1 && middleValue == 1 && rightValue == 1) {
