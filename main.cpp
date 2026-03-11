@@ -21,14 +21,14 @@ int main()
         int middleValue = middleIR.read();
  
         // If 90 degree right turn is needed
-        if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 1 && middleValue == 1 && leftTurnValue == 0) || (leftTurnValue == 0 && leftValue == 0 && middleValue == 1 && rightValue == 1 && rightTurnValue == 1 )) {
+        if (rightValue == 1 && rightTurnValue == 1 && middleValue == 1 && leftTurnValue == 0) {
             cornerRight(dutyTurn);
         }
         // If 90 degree left turn is needed
-        if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 0 && middleValue == 1 && leftTurnValue == 1) || (leftTurnValue == 1 && leftValue == 0 && middleValue == 1 && rightValue == 0 && rightTurnValue == 0 )) {
+        if (leftValue == 1 && rightTurnValue == 0 && middleValue == 1 && leftTurnValue == 1) {
             cornerLeft(dutyTurn);
         }
-        // If both sensors are on BLACK, move forward
+        // If all centre sensors are on BLACK, move forward
         else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && leftTurnValue == 0 && rightTurnValue == 0) {
             forward(forwardDuty);
 
@@ -41,14 +41,9 @@ int main()
         else if ( (leftTurnValue == 0 && leftValue == 0 &&  middleValue == 1 && rightValue == 1  &&  rightTurnValue == 0 )|| (rightTurnValue == 1 && rightValue == 1)) {
             turnRight(duty);
         }
-             // Both sensors on WHITE, stop
+        // All sensors on WHITE, stop
         else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && rightTurnValue == 1 && leftTurnValue == 1) {
             stop();
         }        
-      //  else if (leftValue == 0 && rightValue == 0 && middleValue == 0 && rightTurnValue == 0 && leftTurnValue == 0) {
-     //       reverse(duty);
-     //       wait_us(20000);
-     //       stop();
-    //    }
     }
 }
