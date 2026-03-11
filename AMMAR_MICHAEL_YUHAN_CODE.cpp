@@ -1,6 +1,4 @@
 #undef __ARM_FP
- 
-#undef __ARM_FP
 #include "mbed.h"
 //Left Motor Pins
 PwmOut leftMotor(PTA1);
@@ -19,8 +17,6 @@ DigitalIn middleIR(PTD0);
 DigitalIn rightIR(PTD2);
 DigitalIn rightTurnIR(PTD3);
 DigitalIn leftTurnIR(PTA13);
-#undef __ARM_FP
-#include "mbed.h"
 
 void forward(float duty) {
     leftMotor.write(duty);
@@ -108,7 +104,7 @@ int main()
         else if (leftValue == 1  && rightValue == 1 && leftTurnValue == 1 && middleIR == 1 && leftTurnValue == 0) {
             cornerLeft(duty);
         }
-        /4/ If both sensors are on BLACK, move forward
+        // If both sensors are on BLACK, move forward
         else if (leftValue == 1 && rightValue == 1 && middleIR == 1) {
             forward(duty);
         }
