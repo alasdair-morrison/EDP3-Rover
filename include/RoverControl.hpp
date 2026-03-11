@@ -43,6 +43,16 @@ void turnRight(float duty) {
 }
 
 void stop() {
+    leftMotor.write(0.0f);
+    rightMotor.write(0.0f);
+
+    leftForwardControl  = 0;
+    leftBackwardControl = 0;
+    rightForwardControl = 0;
+    rightBackwardControl = 0;
+}
+
+void fullStop() {
     leftMotor.write(0.8f);
     rightMotor.write(0.8f);
 

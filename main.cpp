@@ -8,6 +8,10 @@ void waitControl() {
     if (mode != prevMode) {
             stop();
             ThisThread::sleep_for(5ms);
+            fullStop();
+            ThisThread::sleep_for(75ms);
+            stop();
+            ThisThread::sleep_for(5ms);
         }
 }
 
@@ -74,7 +78,7 @@ int main()
             mode = 0;
             waitControl();
             cornerRight(dutyTurn);
-            stop();
+            fullStop();
         }        
     }
 }
