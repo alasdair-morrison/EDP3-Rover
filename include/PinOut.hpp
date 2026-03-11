@@ -19,3 +19,5 @@ DigitalIn rightTurnIR(PTD0);
 DigitalIn leftTurnIR(PTA13);
 
 //Ultrasonic Sensor Pins
+DigitalIn frontTrigger(PTD1);
+DigitalIn frontEcho(PTE0);

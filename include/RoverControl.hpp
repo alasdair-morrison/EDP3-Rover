@@ -43,18 +43,18 @@ void turnRight(float duty) {
 }
 
 void stop() {
-    leftMotor.write(0.0f);
-    rightMotor.write(0.0f);
+    leftMotor.write(0.8f);
+    rightMotor.write(0.8f);
 
-    leftForwardControl  = 0;
-    leftBackwardControl = 0;
-    rightForwardControl = 0;
-    rightBackwardControl = 0;
+    leftForwardControl  = 1;
+    leftBackwardControl = 1;
+    rightForwardControl = 1;
+    rightBackwardControl = 1;
 }
 
 void cornerLeft(float duty) {
     turnLeft(duty);
-    wait_us(20000);
+    wait_us(18000);
 }
 
 void cornerRight(float duty) {
