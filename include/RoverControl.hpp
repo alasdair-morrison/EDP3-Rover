@@ -22,7 +22,7 @@ void reverse(float duty) {
     rightBackwardControl = 1;
 }
 
-void turnLeft(float duty) {
+void turnRight(float duty) {
     leftMotor.write(duty);
     rightMotor.write(duty);
 
@@ -32,7 +32,7 @@ void turnLeft(float duty) {
     rightBackwardControl = 0;
 }
 
-void turnRight(float duty) {
+void turnLeft(float duty) {
     leftMotor.write(duty);
     rightMotor.write(duty);
 
