@@ -18,10 +18,6 @@ DigitalIn rightIR(PTD2);
 DigitalIn rightTurnIR(PTD3);
 DigitalIn leftTurnIR(PTA13);
 
-//Ultrasonic Sensor Pins
-DigitalIn frontTrigger(PTD1);
-DigitalIn frontEcho(PTE0);
-
 void forward(float duty) {
     leftMotor.write(duty);
     rightMotor.write(duty);
@@ -76,16 +72,6 @@ void stop() {
     rightBackwardControl = 0;
 }
 
-void fullStop() {
-    leftMotor.write(0.8f);
-    rightMotor.write(0.8f);
-
-    leftForwardControl  = 1;
-    leftBackwardControl = 1;
-    rightForwardControl = 1;
-    rightBackwardControl = 1;
-}
-
 void cornerLeft(float dutyTurnRight) {
     turnLeft(dutyTurnRight);
         wait_us(40000);
@@ -103,12 +89,14 @@ int main()
     stop();
     float period = 1.0/40000;
     float duty = 0.6;
-    float dutyTurnRight = 0.8767;
+    float dutyTurnRight = 0.6767;
     float dutyTurnLeft = 0.6767;
+    powerLED.period(2);
     leftMotor.period(period);
     rightMotor.period(period);
 
     while (true) {
+        powerLED.write(0.25);
         int leftValue = leftIR.read();
         int rightValue = rightIR.read();
         int leftTurnValue = leftTurnIR.read();
@@ -126,6 +114,7 @@ int main()
         // If both sensors are on BLACK, move forward
         else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && leftTurnValue == 0 && rightTurnValue == 0) {
             forward(duty - 0.3);
+
         }
         // Left sensor on black line, turn left
         else if ( (leftTurnValue == 0 && leftValue == 0 &&  middleValue == 1 && rightValue == 1  &&  rightTurnValue == 0 )|| (leftTurnValue == 1 && leftValue == 1)) {
@@ -137,7 +126,12 @@ int main()
         }
              // Both sensors on WHITE, stop
         else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && rightTurnValue == 1 && leftTurnValue == 1) {
-            fullStop();
-        }
+            stop();
+        }        
+      //  else if (leftValue == 0 && rightValue == 0 && middleValue == 0 && rightTurnValue == 0 && leftTurnValue == 0) {
+     //       reverse(duty);
+     //       wait_us(20000);
+     //       stop();
+    //    }
     }
 }
