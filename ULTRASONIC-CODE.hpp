@@ -1,5 +1,4 @@
 #include "mbed.h"
-#include "RoverControl.hpp"
 
 DigitalIn Echo(PTA13);
 DigitalOut Trigger(PTD2);
@@ -12,7 +11,7 @@ double Object_Distance = 0.0;
 
 int main(){
 
-    // MUST SET TRIGGER TO HIGH FO 10US THEN LOW, IF ECHO COMES BACK LONG THEN OBJECT
+    // MUST SET TRIGGER TO HIGH FOR 10US THEN LOW, IF ECHO COMES BACK LONG THEN OBJECT
     while (true) {
         
         if (FSM == 0 && Echo == 0) {
@@ -52,7 +51,7 @@ int main(){
 
         float Emergency_Time = Emergency_Timer.elapsed_time().count();
 
-        /*cm and if 100 cm then 5882.35 us time to bounce back*/
+        /*cm and if 20 cm then 5882.35 us time to bounce back*/
         if (Object_Distance <= 20.0){LED = 1;}
         else {LED = 0;}
 

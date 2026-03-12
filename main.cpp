@@ -107,7 +107,7 @@ double Echo_High_Time = 0.0;
 double Object_Distance = 0.0;
 
 void avoidObstacle() {
-    fullStop();
+    stop();
     wait_us(5000);
 }
 
@@ -149,16 +149,12 @@ void ultrasonicHandler() {
 
         float Emergency_Time = Emergency_Timer.elapsed_time().count();
 
-        /*cm and if 100 cm then 5882.35 us time to bounce back*/
-        if (Object_Distance <= 20.0) {
-            avoidObstacle();
-        }
 
         if ((FSM == 1 || FSM == 2) && Emergency_Time > 60000.0){
             Emergency_Timer.stop();     // we neeed this in case trigger goes of but echo does not due to a loose connection or any reason
             Emergency_Timer.reset();
             FSM = 0; 
-        } // Prevent being stuck if wire is loose and echo nevcer goes high
+        } // Prevent being stuck if wire is loose and echo never goes high
 }
 
 int main()
@@ -172,12 +168,19 @@ int main()
     rightMotor.period(period);
 
     while (true) {
+
+        ultrasonicHandler();
+        
+        /*cm and if 20 cm then 5882.35 us time to bounce back*/
+        if (Object_Distance <= 20.0) {
+            avoidObstacle();
+        }
         int leftValue = leftIR.read();
         int rightValue = rightIR.read();
         int leftTurnValue = leftTurnIR.read();
         int rightTurnValue = rightTurnIR.read();
         int middleValue = middleIR.read();
- 
+
         // If 90 degree right turn is needed
         if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 1 && middleValue == 1 && leftTurnValue == 0) || (leftTurnValue == 0 && leftValue == 0 && middleValue == 1 && rightValue == 1 && rightTurnValue == 1 )) {
             cornerRight(dutyTurnRight);
