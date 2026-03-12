@@ -94,20 +94,6 @@ void cornerRight(float dutyTurnLeft) {
 
 }
 
-int mode = 0;
-int prevMode = 0;
-
-void waitControl() {
-    if (mode != prevMode) {
-            stop();
-            ThisThread::sleep_for(5ms);
-            fullStop();
-            ThisThread::sleep_for(75ms);
-            stop();
-            ThisThread::sleep_for(5ms);
-        }
-}
-
 int main()
 {
     stop();
@@ -127,45 +113,27 @@ int main()
  
         // If 90 degree right turn is needed
         if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 1 && middleValue == 1 && leftTurnValue == 0) || (leftTurnValue == 0 && leftValue == 0 && middleValue == 1 && rightValue == 1 && rightTurnValue == 1 )) {
-            prevMode = mode;
-            mode = 1;
-            waitControl();
             cornerRight(dutyTurnRight);
         }
         // If 90 degree left turn is needed
         if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 0 && middleValue == 1 && leftTurnValue == 1) || (leftTurnValue == 1 && leftValue == 0 && middleValue == 1 && rightValue == 0 && rightTurnValue == 0 )) {
-            prevMode = mode;
-            mode = 2;
-            waitControl();
             cornerLeft(dutyTurnLeft);
         }
         // If both sensors are on BLACK, move forward
         else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && leftTurnValue == 0 && rightTurnValue == 0) {
-            prevMode = mode;
-            mode = 3;
-            waitControl();
             forward(duty - 0.3);
 
         }
         // Left sensor on black line, turn left
         else if ( (leftTurnValue == 0 && leftValue == 0 &&  middleValue == 1 && rightValue == 1  &&  rightTurnValue == 0 )|| (leftTurnValue == 1 && leftValue == 1)) {
-            prevMode = mode;
-            mode = 4;
-            waitControl();
             turnLeft(duty);
         }
         // Right sensor on black line, turn right
         else if ( (leftTurnValue == 0 && leftValue == 0 &&  middleValue == 1 && rightValue == 1  &&  rightTurnValue == 0 )|| (rightTurnValue == 1 && rightValue == 1)) {
-            prevMode = mode;
-            mode = 5;
-            waitControl();
             turnRight(duty);
         }
         // Both sensors on WHITE, stop
         if((leftTurnValue == 0 && rightTurnValue == 0 && rightValue == 0 && leftValue == 0 && middleValue == 0) || (leftTurnValue == 1 && rightTurnValue == 1 && rightValue == 1 && leftValue == 1 && middleValue == 1)) {
-            prevMode = mode;
-            mode = 0;
-            waitControl();
             fullStop();
         }
     }
