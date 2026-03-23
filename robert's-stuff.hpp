@@ -15,7 +15,7 @@
 
 // ── Serial Ports ───────────────────────────────
 static BufferedSerial pc_serial(USBTX, USBRX, 9600);
-static BufferedSerial bt_serial(PTC4,  PTC3,  9600);
+static BufferedSerial bt_serial(PTC9,  PTC8,  9600);
 
 // ── Override console for printf ────────────────
 FileHandle *mbed::mbed_override_console(int) {

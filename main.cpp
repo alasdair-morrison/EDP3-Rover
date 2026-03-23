@@ -1,5 +1,7 @@
 #undef __ARM_FP
 #include "mbed.h"
+#include "TCS3200.h"
+
 //Left Motor Pins
 PwmOut leftMotor(PTA1);
 DigitalOut leftForwardControl(PTA2);
@@ -26,13 +28,14 @@ DigitalOut redLed(LED1);
 DigitalOut greenLed(LED2);
 DigitalOut blueLed(LED3);
 
-DigitalIn colourSensor(PTC2);
-
 DigitalInOut DHT22_PIN(PTC1);  // DHT22 Data pin
 
 // ── Serial Ports ───────────────────────────────
 static BufferedSerial pc_serial(USBTX, USBRX, 9600);
 static BufferedSerial bt_serial(PTC4,  PTC3,  9600);
+
+// Pin configuration: S0, S1, S2, S3, OUT
+TCS3200 colorSensor(D2, D3, D4, D5, D6); 
 
 // ── Temperature Thresholds (°C) ────────────────
 #define TEMP_MIN        0.0f
@@ -245,11 +248,10 @@ bool lineDetected() {
 
 void avoidObstacle() {
     double objectDistanceSide = 0;
-    
-    while(!lineDetected()) {
-        while (getDistanceSide(objectDistanceSide) > 20) {
+    while (getDistanceSide(objectDistanceSide) > 20) {
             turnRight(duty);
-        }
+    }
+    while(!lineDetected()) {
         objectDistanceSide = getDistanceSide(objectDistanceSide);
         if (objectDistanceSide > 20) {
             turnLeft(duty);
@@ -446,15 +448,24 @@ void humidityControl() {
     }
 }
 
+bool redDetected() {
+    long redValue = colorSensor.ReadRed();
+    if (redValue < 50) {
+        return true;
+    }
+    return false;
+}
+
 int main()
 {
     stop();
     leftMotor.period(period);
     rightMotor.period(period);
     double Object_Distance_Front = 0;
+    colorSensor.SetMode(TCS3200::SCALE_20); 
 
     while (true) {
-        while (colourSensor.read() == 1) { // If colour sensor detects red
+        while (redDetected()) { // If colour sensor detects red
             fullStop();
         }
 
@@ -472,10 +483,12 @@ int main()
 
         // If 90 degree right turn is needed
         if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 1 && middleValue == 1 && leftTurnValue == 0) || (leftTurnValue == 0 && leftValue == 0 && middleValue == 1 && rightValue == 1 && rightTurnValue == 1 )) {
+            printBoth("Initiating 90 degree turn Right");
             cornerRight(dutyTurnRight);
         }
         // If 90 degree left turn is needed
         if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 0 && middleValue == 1 && leftTurnValue == 1) || (leftTurnValue == 1 && leftValue == 0 && middleValue == 1 && rightValue == 0 && rightTurnValue == 0 )) {
+            printBoth("Initiating 90 degree turn Left");
             cornerLeft(dutyTurnLeft);
         }
         // If both sensors are on BLACK, move forward
@@ -484,14 +497,17 @@ int main()
         }
         // Left sensor on black line, turn left
         else if ( (leftTurnValue == 0 && leftValue == 0 &&  middleValue == 1 && rightValue == 1  &&  rightTurnValue == 0 )|| (leftTurnValue == 1 && leftValue == 1)) {
+            printBoth("Initiating Left Turn");
             turnLeft(duty);
         }
         // Right sensor on black line, turn right
         else if ( (leftTurnValue == 0 && leftValue == 0 &&  middleValue == 1 && rightValue == 1  &&  rightTurnValue == 0 )|| (rightTurnValue == 1 && rightValue == 1)) {
+            printBoth("Initiating Right Turn");
             turnRight(duty);
         }
              // Both sensors on WHITE, stop
         else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && rightTurnValue == 1 && leftTurnValue == 1) {
+            printBoth("Braking");
             fullStop();
         }
         //Call the humidity control method
