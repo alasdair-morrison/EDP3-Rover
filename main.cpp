@@ -32,7 +32,7 @@ DigitalInOut DHT22_PIN(PTC1);  // DHT22 Data pin
 
 // ── Serial Ports ───────────────────────────────
 static BufferedSerial pc_serial(USBTX, USBRX, 9600);
-static BufferedSerial bt_serial(PTC4,  PTC3,  9600);
+static BufferedSerial bt_serial(PTC9,  PTC8,  9600);
 
 // Pin configuration: S0, S1, S2, S3, OUT
 TCS3200 colorSensor(D2, D3, D4, D5, D6); 
