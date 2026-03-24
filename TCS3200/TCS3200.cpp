@@ -13,28 +13,28 @@ mS0(S0), mS1(S1), mS2(S2), mS3(S3), signal(OUT)
 long TCS3200::ReadRed() {
     mS2=0;                    
     mS3=0;
-    wait_us(0.1);     //Delay to allow frequency to change for the set color
+    wait_us(100000);     //Delay to allow frequency to change for the set color
     return(pulsewidth);
 }
 
 long TCS3200::ReadGreen() {
     mS2=1;                    
     mS3=1;
-    wait_us(0.1);     //Delay to allow frequency to change for the set color
+    wait_us(100000);     //Delay to allow frequency to change for the set color
     return(pulsewidth);
 }
 
 long TCS3200::ReadBlue() {
     mS2=0;                    
     mS3=1;
-    wait_us(0.1);     //Delay to allow frequency to change for the set color
+    wait_us(100000);     //Delay to allow frequency to change for the set color
     return(pulsewidth);
 }
 
 long TCS3200::ReadClear() {
     mS2=1;                    
     mS3=0;
-    wait_us(0.1);     //Delay to allow frequency to change for the set color
+    wait_us(100000);     //Delay to allow frequency to change for the set color
     return(pulsewidth);
 }
 

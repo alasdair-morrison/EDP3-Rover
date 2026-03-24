@@ -12,17 +12,17 @@ DigitalOut rightForwardControl(PTA5);
 DigitalOut rightBackwardControl(PTA4);
 
 //IR Sensor Pins
-DigitalIn leftIR(PTD5);
-DigitalIn middleIR(PTD0);
-DigitalIn rightIR(PTD2);
-DigitalIn rightTurnIR(PTD3);
-DigitalIn leftTurnIR(PTA13);
+DigitalIn leftIR(PTD0);
+DigitalIn middleIR(PTD2);
+DigitalIn rightIR(PTD3);
+DigitalIn rightTurnIR(PTD1);
+DigitalIn leftTurnIR(PTD5);
 
 //Ultrasonic Sensor Pins
-DigitalOut frontTrigger(PTD1);
-DigitalIn frontEcho(PTE0);
-DigitalOut sideTrigger(PTC6);
-DigitalIn sideEcho(PTC7);
+DigitalOut frontTrigger(PTE0);
+DigitalIn frontEcho(PTE1);
+DigitalOut sideTrigger(PTC8);
+DigitalIn sideEcho(PTC9);
 
 DigitalOut redLed(LED1);
 DigitalOut greenLed(LED2);
@@ -35,7 +35,7 @@ static BufferedSerial pc_serial(USBTX, USBRX, 9600);
 static BufferedSerial bt_serial(PTC9,  PTC8,  9600);
 
 // Pin configuration: S0, S1, S2, S3, OUT
-TCS3200 colorSensor(D2, D3, D4, D5, D6); 
+TCS3200 colourSensor(PTC1, PTC2, PTB3, PTB2, PTA13);
 
 // ── Temperature Thresholds (°C) ────────────────
 #define TEMP_MIN        0.0f
@@ -51,6 +51,9 @@ float period = 1.0/40000;
 float duty = 0.6;
 float dutyTurnRight = 0.8767;
 float dutyTurnLeft = 0.6767;
+float avgRed = 0;
+float avgGreen = 0;
+float avgBlue = 0;
 
 FileHandle *mbed::mbed_override_console(int) {
     return &pc_serial;
@@ -448,12 +451,31 @@ void humidityControl() {
     }
 }
 
+DigitalOut red_led(LED_RED);
+
 bool redDetected() {
-    long redValue = colorSensor.ReadRed();
-    if (redValue < 50) {
-        return true;
+    // Tunable "Smoothness" (0.1 = Very Smooth/Slow, 0.9 = Fast/Jittery)
+    float alpha = 0.2; 
+    float minGap = 50.0;
+    long rawRed = colourSensor.ReadRed();
+    long rawGreen = colourSensor.ReadGreen();
+    long rawBlue = colourSensor.ReadBlue();
+    
+    // Apply Filter
+    avgRed = (rawRed * alpha) + (avgRed * (1.0 - alpha));
+    avgGreen = (rawGreen * alpha) + (avgGreen * (1.0 - alpha));
+    avgBlue = (rawBlue * alpha) + (avgBlue * (1.0 - alpha));
+    float blueGap = avgBlue - avgRed;
+    float greenGap = avgGreen - avgRed;
+        
+    // 5. The "Contrast" Check
+    // "Is Blue 50 units weaker than Red? AND Is Green 50 units weaker?"
+    if (blueGap > minGap && greenGap > minGap) {
+        red_led = 0; // Turn ON
+    } 
+    else {
+        red_led = 1; // Turn OFF
     }
-    return false;
 }
 
 int main()
