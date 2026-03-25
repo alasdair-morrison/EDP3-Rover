@@ -15,7 +15,7 @@
 
 // ── Serial Ports ───────────────────────────────
 static BufferedSerial pc_serial(USBTX, USBRX, 9600);
-static BufferedSerial bt_serial(PTC9,  PTC8,  9600);
+static BufferedSerial bt_serial(PTA2,  PTA1,  9600);
 
 // ── Override console for printf ────────────────
 FileHandle *mbed::mbed_override_console(int) {
@@ -28,7 +28,7 @@ DigitalOut greenLed(LED2);
 DigitalOut blueLed(LED3);
 
 // ── Motor Enable Pin ───────────────────────────
-DigitalOut motorEnable(PTD5);   // Change pin if needed
+//DigitalOut motorEnable(PTD5);   // Change pin if needed
 
 // ── Rover States ───────────────────────────────
 enum RoverState {
@@ -138,7 +138,7 @@ void applyRoverState(RoverState state, float temp, float hum) {
     switch (state) {
 
         case ROVER_SAFE:
-            motorEnable = 1;    // Motors ON
+            //motorEnable = 1;    // Motors ON
             greenLed    = 0;    // Green ON  (active low)
             redLed      = 1;    // Red OFF
             blueLed     = 1;    // Blue OFF
@@ -146,7 +146,7 @@ void applyRoverState(RoverState state, float temp, float hum) {
             break;
 
         case ROVER_WARNING:
-            motorEnable = 1;    // Still running
+            //motorEnable = 1;    // Still running
             greenLed    = 1;    // Green OFF
             redLed      = 1;    // Red OFF
             blueLed     = 0;    // Blue ON = warning
@@ -154,7 +154,7 @@ void applyRoverState(RoverState state, float temp, float hum) {
             break;
 
         case ROVER_SHUTDOWN:
-            motorEnable = 0;    // Motors OFF
+            //motorEnable = 0;    // Motors OFF
             greenLed    = 1;    // Green OFF
             redLed      = 0;    // Red ON = danger
             blueLed     = 1;    // Blue OFF
@@ -181,7 +181,7 @@ void applyRoverState(RoverState state, float temp, float hum) {
 int main() {
 
     // Startup
-    motorEnable = 0;    // Motors off on boot
+    //motorEnable = 0;    // Motors off on boot
     redLed      = 1;    // All LEDs off (active low)
     greenLed    = 1;
     blueLed     = 1;
@@ -228,7 +228,7 @@ int main() {
 
         } else {
             // Sensor read failed → shutdown for safety
-            motorEnable = 0;
+            //motorEnable = 0;
             redLed      = 0;
             printBoth("ERROR: DHT22 Read Failed!\r\n");
             printBoth("SAFETY: Motors Disabled!\r\n");
