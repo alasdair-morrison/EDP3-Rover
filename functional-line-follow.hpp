@@ -1,22 +1,20 @@
 #undef __ARM_FP
 #include "mbed.h"
 //Left Motor Pins
-PwmOut leftMotor(PTA1);
-DigitalOut leftForwardControl(PTA2);
-DigitalOut leftBackwardControl(PTD4);
+PwmOut leftMotor(PTD4);
+DigitalOut leftForwardControl(PTA12);
+DigitalOut leftBackwardControl(PTA4);
 //Right Motor Pins
-PwmOut rightMotor(PTA12);
-DigitalOut rightForwardControl(PTA5);
-DigitalOut rightBackwardControl(PTA4);
-//Detection LED
-PwmOut powerLED(LED_RED);
+PwmOut rightMotor(PTA5);
+DigitalOut rightForwardControl(PTC9);
+DigitalOut rightBackwardControl(PTC8);
 
 //IR Sensor Pins
-DigitalIn leftIR(PTD5);
-DigitalIn middleIR(PTD0);
-DigitalIn rightIR(PTD2);
-DigitalIn rightTurnIR(PTD3);
-DigitalIn leftTurnIR(PTA13);
+DigitalIn leftIR(PTD0);
+DigitalIn middleIR(PTD2);
+DigitalIn rightIR(PTD3);
+DigitalIn rightTurnIR(PTD1);
+DigitalIn leftTurnIR(PTD5);
 
 void forward(float duty) {
     leftMotor.write(duty);
@@ -89,14 +87,12 @@ int main()
     stop();
     float period = 1.0/40000;
     float duty = 0.6;
-    float dutyTurnRight = 0.6767;
-    float dutyTurnLeft = 0.6767;
-    powerLED.period(2);
+    float dutyTurnRight = 0.8;
+    float dutyTurnLeft = 0.8;
     leftMotor.period(period);
     rightMotor.period(period);
 
     while (true) {
-        powerLED.write(0.25);
         int leftValue = leftIR.read();
         int rightValue = rightIR.read();
         int leftTurnValue = leftTurnIR.read();
@@ -113,7 +109,7 @@ int main()
         }
         // If both sensors are on BLACK, move forward
         else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && leftTurnValue == 0 && rightTurnValue == 0) {
-            forward(duty - 0.3);
+            forward(duty - 0.5);
 
         }
         // Left sensor on black line, turn left

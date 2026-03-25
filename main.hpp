@@ -3,8 +3,8 @@
 #include "TCS3200.h"
 
 //Left Motor Pins
-PwmOut leftMotor(PTA12);
-DigitalOut leftForwardControl(PTD4);
+PwmOut leftMotor(PTD4);
+DigitalOut leftForwardControl(PTA12);
 DigitalOut leftBackwardControl(PTA4);
 //Right Motor Pins
 PwmOut rightMotor(PTA5);
@@ -28,7 +28,7 @@ DigitalOut redLed(LED1);
 DigitalOut greenLed(LED2);
 DigitalOut blueLed(LED3);
 
-DigitalInOut DHT22_PIN(PT);  // DHT22 Data pin
+DigitalInOut DHT22_PIN(PTC7);  // DHT22 Data pin
 
 // ── Serial Ports ───────────────────────────────
 static BufferedSerial pc_serial(USBTX, USBRX, 9600);
@@ -49,8 +49,8 @@ TCS3200 colourSensor(PTC1, PTC2, PTB3, PTB2, PTA13);
 
 float period = 1.0/40000;
 float duty = 0.6;
-float dutyTurnRight = 0.8767;
-float dutyTurnLeft = 0.6767;
+float dutyTurnRight = 0.8;
+float dutyTurnLeft = 0.8;
 float avgRed = 0;
 float avgGreen = 0;
 float avgBlue = 0;
@@ -455,7 +455,7 @@ DigitalOut red_led(LED_RED);
 
 bool redDetected() {
     // Tunable "Smoothness" (0.1 = Very Smooth/Slow, 0.9 = Fast/Jittery)
-    float alpha = 0.2; 
+    float alpha = 0.6; 
     float minGap = 50.0;
     long rawRed = colourSensor.ReadRed();
     long rawGreen = colourSensor.ReadGreen();
@@ -500,22 +500,22 @@ int main()
     stop();
     leftMotor.period(period);
     rightMotor.period(period);
-    double Object_Distance_Front = 0;
-    colourSensor.SetMode(TCS3200::SCALE_20); 
+    double Object_Distance_Front = 30;
+    colourSensor.SetMode(TCS3200::SCALE_20);
     int state[1] = {0};
     printBoth("Manual or automatic control? Enter 0 for automatic, 1 for manual");
-    bt_serial.read(state, 1);
+    //bt_serial.read(state, 1);
     while (true) {
         if (state[0] == 0) {
             while (redDetected()) { // If colour sensor detects red
                 fullStop();
             }
 
-            Object_Distance_Front = ultrasonicHandlerFront(Object_Distance_Front);
+            //Object_Distance_Front = ultrasonicHandlerFront(Object_Distance_Front);
             
             /*cm and if 20 cm then 5882.35 us time to bounce back*/
             if (Object_Distance_Front <= 20.0) {
-                avoidObstacle();
+                //avoidObstacle();
             }
             int leftValue = leftIR.read();
             int rightValue = rightIR.read();
@@ -553,7 +553,7 @@ int main()
                 fullStop();
             }
             //Call the humidity control method
-            humidityControl();
+            //humidityControl();
         }
         else {
             char command[1];

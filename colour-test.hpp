@@ -14,7 +14,7 @@ float avgBlue = 0;
 
 void readSmoothedColors() {
     // Tunable "Smoothness" (0.1 = Very Smooth/Slow, 0.9 = Fast/Jittery)
-    float alpha = 0.2; 
+    float alpha = 0.6; 
     
     long rawRed = colourSensor.ReadRed();
     long rawGreen = colourSensor.ReadGreen();
@@ -41,11 +41,13 @@ int main() {
         
         // 5. The "Contrast" Check
         // "Is Blue 50 units weaker than Red? AND Is Green 50 units weaker?"
-        if (blueGap > minGap && greenGap > minGap) {
+        if (blueGap > minGap && greenGap > minGap && avgRed < 200) {
             red_led = 0; // Turn ON
+            printf("Red Detected\r\n");
         } 
         else {
             red_led = 1; // Turn OFF
+            printf("No Red Detected\r\n");
         }
         
         wait_us(100000); // Run faster (10Hz) so the filter can work
