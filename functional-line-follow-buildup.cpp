@@ -35,7 +35,7 @@ float avgGreen = 0;
 float avgBlue = 0;
 
 float period = 1.0/40000;
-float duty = 0.6;
+float duty = 0.5;
 float dutyTurnRight = 0.8;
 float dutyTurnLeft = 0.8;
 
@@ -143,98 +143,66 @@ Timer Emergency_Timer;
 double Echo_High_TimeFront = 0.0;
 double Echo_High_TimeSide = 0.0;
 
-double getDistanceSide(double Object_Distance) {
-    if (FSMS == 0 && sideEcho == 0) {
-            sideTrigger = 0;
-            wait_us(1);   // Just a clean transition start
-            sideTrigger = 1;
-            wait_us(10);  // Set Trigger to High for 10 us
-            sideTrigger = 0;
+Thread ultrasonicThread;
+volatile double globalFrontDistance = 999.0;
+volatile double globalSideDistance = 999.0;
 
-            Emergency_Timer.reset();     // we neeed thhis in case trigger goes of but echo does not due to a loose connection or any reason
-            Emergency_Timer.start();
-
-            FSMS = 1;   // Finite-State Machine is on mode 1
-        }
-
-        if (FSMS == 1 && sideEcho == 1) {
-            High_TimeS.reset();
-            High_TimeS.start();
-
-            Emergency_Timer.stop();     // end the timer since if we get to this point we cant be stuck anymore
-
-            FSMS = 2;   // Finite-State Machine is on mode 2
-        }
-
-        if (FSMS == 2 && sideEcho == 0) {
-            High_TimeS.stop();
-            FSMS = 3;   // Finite-State Machine is on mode 2
-        }    
-
-        if (FSMS == 3 && sideEcho == 0) {
-            // Calculate time in us
-            Echo_High_TimeSide = High_TimeS.elapsed_time().count();
-            // CONVERTED TO cm/us form m/s from datasheet
-            Object_Distance = (Echo_High_TimeSide * (0.034/ 2.0));
-            FSMS = 0;   // Finite-State Machine is on mode 2
-        }    
-
-        float Emergency_Time = Emergency_Timer.elapsed_time().count();
-
-
-        if ((FSMS == 1 || FSMS == 2) && Emergency_Time > 60000.0){
-            Emergency_Timer.stop();     // we neeed this in case trigger goes of but echo does not due to a loose connection or any reason
-            Emergency_Timer.reset();
-            FSMS = 0; 
-        } // Prevent being stuck if wire is loose and echo never goes high
-    return Object_Distance;
+// A universal function to read ANY ultrasonic sensor
+double pingUltrasonic(DigitalOut& trigger, DigitalIn& echo) {
+    Timer echoTimer;
+    Timer timeoutTimer;
+    
+    trigger = 0;
+    wait_us(2);
+    trigger = 1;
+    wait_us(10); // 10us pulse
+    trigger = 0;
+    
+    timeoutTimer.start();
+    
+    // Wait for echo pin to go HIGH
+    while (echo == 0) {
+        // If it takes longer than 30ms, the pulse was lost. Timeout.
+        if (timeoutTimer.elapsed_time().count() > 30000) return 999.0; 
+    }
+    
+    echoTimer.start();
+    
+    // Wait for echo pin to go LOW
+    while (echo == 1) {
+        // If it takes longer than 60ms, timeout.
+        if (timeoutTimer.elapsed_time().count() > 60000) return 999.0;
+    }
+    
+    echoTimer.stop();
+    
+    // Calculate and return the distance in cm
+    return (echoTimer.elapsed_time().count() * 0.0343) / 2.0;
 }
 
-double ultrasonicHandlerFront(double Object_Distance) {
-    if (FSMF == 0 && frontEcho == 0) {
-            frontTrigger = 0;
-            wait_us(1);   // Just a clean transition start
-            frontTrigger = 1;
-            wait_us(10);  // Set Trigger to High for 10 us
-            frontTrigger = 0;
-
-            Emergency_Timer.reset();     // we neeed thhis in case trigger goes of but echo does not due to a loose connection or any reason
-            Emergency_Timer.start();
-
-            FSMF = 1;   // Finite-State Machine is on mode 1
+// The Background Worker Thread
+void ultrasonicWorker() {
+    while (true) {
+        // 1. Ping the Front Sensor
+        double front = pingUltrasonic(frontTrigger, frontEcho);
+        if (front < 400.0) { // Filter out bad massive readings
+            globalFrontDistance = front;
+            printf("Front Dist: %d\r\n", int(globalFrontDistance));
         }
-
-        if (FSMF == 1 && frontEcho == 1) {
-            High_TimeF.reset();
-            High_TimeF.start();
-
-            Emergency_Timer.stop();     // end the timer since if we get to this point we cant be stuck anymore
-
-            FSMF = 2;   // Finite-State Machine is on mode 2
+        
+        // Wait 30ms to let the soundwaves dissipate (prevents cross-talk)
+        thread_sleep_for(30); 
+        
+        // 2. Ping the Side Sensor
+        double side = pingUltrasonic(sideTrigger, sideEcho);
+        if (side < 400.0) {
+            globalSideDistance = side;
+            printf("Side Dist: %d\r\n", int(globalSideDistance));
         }
-
-        if (FSMF == 2 && frontEcho == 0) {
-            High_TimeF.stop();
-            FSMF = 3;   // Finite-State Machine is on mode 2
-        }    
-
-        if (FSMF == 3 && frontEcho == 0) {
-            // Calculate time in us
-            Echo_High_TimeFront = High_TimeF.elapsed_time().count();
-            // CONVERTED TO cm/us form m/s from datasheet
-            Object_Distance = (Echo_High_TimeFront * (0.034/ 2.0));
-            FSMF = 0;   // Finite-State Machine is on mode 2
-        }    
-
-        float Emergency_Time = Emergency_Timer.elapsed_time().count();
-
-
-        if ((FSMF == 1 || FSMF == 2) && Emergency_Time > 60000.0){
-            Emergency_Timer.stop();     // we neeed this in case trigger goes of but echo does not due to a loose connection or any reason
-            Emergency_Timer.reset();
-            FSMF = 0; 
-        } // Prevent being stuck if wire is loose and echo never goes high
-        return Object_Distance;
+        
+        // Wait before starting the loop again
+        thread_sleep_for(30);
+    }
 }
 
 bool lineDetected() {
@@ -267,7 +235,7 @@ void avoidObstacle() {
 
     // STEP 2: Follow the perimeter until the line is found
     while (!lineDetected()) {
-        sideDistance = getDistanceSide(sideDistance);
+        sideDistance = globalSideDistance;
 
         // Avoid reacting to erroneous "0" readings if the sensor misfires
         if (sideDistance <= 0.1) {
@@ -277,11 +245,11 @@ void avoidObstacle() {
         // The "Deadband" logic: Maintain a distance between 15cm and 25cm
         if (sideDistance > 25.0) {
             // Drifting away from the obstacle -> steer toward it
-            turnLeft(duty-0.3);
+            steerLeft(duty-0.3);
         } 
         else if (sideDistance < 15.0) {
             // Getting too close to the obstacle -> steer away
-            turnRight(duty-0.3);
+            steerRight(duty-0.3);
         } 
         else {
             // In the sweet spot (15cm - 25cm) -> drive straight
@@ -328,6 +296,8 @@ void avoidObstacleHard() {
 
 float dynamicMinGap = 50.0;
 float dynamicMaxRed = 75.0;
+Thread colorThread;
+volatile bool isStoppedForRed = false;
 
 bool redDetected() {
     // Tunable "Smoothness" (0.1 = Very Smooth/Slow, 0.9 = Fast/Jittery)
@@ -340,7 +310,7 @@ bool redDetected() {
     avgRed = (rawRed * alpha) + (avgRed * (1.0 - alpha));
     avgGreen = (rawGreen * alpha) + (avgGreen * (1.0 - alpha));
     avgBlue = (rawBlue * alpha) + (avgBlue * (1.0 - alpha));
-    //printf("R: %d   G: %d   B: %d\r\n", int(avgRed), int(avgGreen), int(avgBlue));
+    printf("R: %d   G: %d   B: %d\r\n", int(avgRed), int(avgGreen), int(avgBlue));
     float blueGap = avgBlue - avgRed;
     float greenGap = avgGreen - avgRed;
         
@@ -348,12 +318,12 @@ bool redDetected() {
     // "Is Blue 50 units weaker than Red? AND Is Green 50 units weaker?"
     if (blueGap > dynamicMinGap && greenGap > dynamicMinGap && avgRed < dynamicMaxRed) {
         red_led = 0; // Turn ON
-        //printf("Red Detected\r\n");
+        printf("Red Detected\r\n");
         return true;
     } 
     else {
         red_led = 1; // Turn OFF
-        //printf("No Red Detected\r\n");
+        printf("No Red Detected\r\n");
         return false;
     }
 }
@@ -391,11 +361,26 @@ double baselineRed() {
     // RULE 2: Adjust Max Red
     // A red object will make the raw red value drop (stronger signal). 
     // We set the detection threshold to 85% of the ambient baseline.
-    dynamicMaxRed = ambientRed * 0.90;
+    dynamicMaxRed = ambientRed * 0.95;
 
     printf("Calibration Done! New MinGap: %.2ld | New MaxRed: %.2ld\r\n", long(dynamicMinGap), long(dynamicMaxRed));
 
     return dynamicMaxRed;
+}
+
+void colorSensorWorker() {
+    while (true) {
+        // Read the color sensor
+        bool detected = redDetected();
+        
+        // Update the global flag that the main loop is watching
+        isStoppedForRed = detected;
+        
+        // Yield the CPU for 50 milliseconds. 
+        // This is crucial! It tells the RTOS to pause this thread and give 
+        // 100% of the processing power back to the motors for 50ms.
+        thread_sleep_for(50); 
+    }
 }
 
 int main()
@@ -408,20 +393,22 @@ int main()
     Timer colorCheckTimer;
     colorCheckTimer.start();
     dynamicMaxRed = baselineRed();
+    colorThread.start(colorSensorWorker);
+    ultrasonicThread.start(ultrasonicWorker);
+    // 4. Your incredibly fast, uninterrupted Main Loop
     while (true) {
-        if (colorCheckTimer.read() > 0.05) {
-                while (redDetected()) {
-                    fullStop();
-                    wait_us(50000); // 50ms buffer so it doesn't spam reads
-                }
-            // Reset the timer after checking
-            colorCheckTimer.reset(); 
+        
+        // Check the flag updated by the background thread
+        if (isStoppedForRed) {
+            fullStop();
+            continue; // Skip the IR logic while red is detected
         }
-        //Object_Distance_Front = ultrasonicHandlerFront(Object_Distance_Front);
             
         /*cm and if 20 cm then 5882.35 us time to bounce back*/
-        if (Object_Distance_Front <= 20.0) {
-            //avoidObstacleHard();
+        if (globalFrontDistance <= 20.0) {
+            printf("Object Detected");
+            fullStop();//avoidObstacleHard();
+            continue;
         }
         int leftValue = leftIR.read();
         int rightValue = rightIR.read();
@@ -439,7 +426,7 @@ int main()
         }
         // If both sensors are on BLACK, move forward
         else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && leftTurnValue == 0 && rightTurnValue == 0) {
-            forward(duty-0.1);
+            forward(0.1);
 
         }
         // Left sensor on black line, turn left
