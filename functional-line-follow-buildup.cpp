@@ -29,7 +29,10 @@ DigitalIn sideEcho(PTB0);
 DigitalOut red_led(LED_RED);
 // Pin configuration: S0, S1, S2, S3, OUT
 TCS3200 colourSensor(PTC1, PTC2, PTB3, PTB2, PTA13);
-static BufferedSerial pc(USBTX, USBRX, 9600);
+// ── Serial Ports ───────────────────────────────
+static BufferedSerial pc_serial(USBTX, USBRX, 9600);
+static BufferedSerial bt_serial(PTA2,  PTA1,  9600);
+
 float avgRed = 0;
 float avgGreen = 0;
 float avgBlue = 0;
@@ -38,6 +41,19 @@ float period = 1.0/40000;
 float duty = 0.6;
 float dutyTurnRight = 0.8;
 float dutyTurnLeft = 0.8;
+
+void pcPrint(const char* msg) {
+    pc_serial.write(msg, strlen(msg));
+}
+
+void btPrint(const char* msg) {
+    bt_serial.write(msg, strlen(msg));
+}
+
+void printBoth(const char* msg) {
+    pcPrint(msg);
+    btPrint(msg);
+}
 
 void forward(float duty) {
     leftMotor.write(duty);
@@ -91,13 +107,13 @@ void stop() {
 
 void cornerLeft(float dutyTurnRight) {
     turnLeft(dutyTurnRight);
-        wait_us(40000);
+    wait_us(40000);
 
 }
 
 void cornerRight(float dutyTurnLeft) {
     turnRight(dutyTurnLeft);
-        wait_us(40000);
+    wait_us(40000);
 
 }
 
@@ -109,30 +125,6 @@ void fullStop() {
     leftBackwardControl = 1;
     rightForwardControl = 1;
     rightBackwardControl = 1;
-}
-
-void steerLeft(float baseDuty) {
-    // Both wheels forward
-    leftForwardControl  = 1;
-    rightForwardControl = 1;
-    leftBackwardControl = 0;
-    rightBackwardControl = 0;
-
-    // Slow down the left wheel to arc left towards the object
-    leftMotor.write(baseDuty - 0.2); 
-    rightMotor.write(baseDuty);
-}
-
-void steerRight(float baseDuty) {
-    // Both wheels forward
-    leftForwardControl  = 1;
-    rightForwardControl = 1;
-    leftBackwardControl = 0;
-    rightBackwardControl = 0;
-
-    // Slow down the right wheel to arc right away from the object
-    leftMotor.write(baseDuty);
-    rightMotor.write(baseDuty - 0.2); 
 }
 
 int FSMF = 0;
@@ -196,6 +188,9 @@ void ultrasonicWorker() {
         //}
         if (globalFrontDistance <= 20.0 && !objectDetected) {
             objectDetected = true;
+            while (objectDetected) {
+                thread_sleep_for(30); 
+            }
             //printf("Object Detected\r\n");
         }
         else {
@@ -224,8 +219,7 @@ void avoidObstacleHard() {
     // STEP 1: The Evasion Turn
     // Turn right just enough so the robot clears the front of the object.
     // (You will need to tune this 400000us / 0.4s value to match your 90-degree turn time)
-    cornerRight(dutyTurnRight);
-    wait_us(400000); 
+    cornerRight(duty);
 
     // Stop briefly to let momentum settle before accelerating again
     fullStop();
@@ -234,7 +228,7 @@ void avoidObstacleHard() {
     // STEP 2: Lock into the Fixed Arc
     // Set both wheels to drive forward, but make the left wheel slower.
     // This forces the robot to drive in a fixed left-handed circle.
-    leftMotor.write(duty - 0.15f); // Slower inside wheel
+    leftMotor.write(duty - 0.25); // Slower inside wheel
     rightMotor.write(duty);        // Faster outside wheel
     
     leftForwardControl  = 1; rightForwardControl = 1;
@@ -246,7 +240,7 @@ void avoidObstacleHard() {
     // The robot will continuously drive in its blind arc until the IR sensors
     // detect the line. We include a 5.0-second failsafe so it doesn't orbit forever.
     while (!lineDetected()) {
-        if (orbitTimer.read() > 5.0f) {
+        if (orbitTimer.read() > 5.0) {
             break; // Failsafe triggered: we missed the line, stop the robot
         }
         
@@ -261,6 +255,7 @@ void avoidObstacleHard() {
     
     // Pause briefly to stabilize before returning to the main line-following loop
     wait_us(100000); 
+    objectDetected = false;
 }
 
 float dynamicMinGap = 50.0;
@@ -281,8 +276,7 @@ bool redDetected() {
     float blueGap = avgBlue - avgRed;
     float greenGap = avgGreen - avgRed;
         
-    // 5. The "Contrast" Check
-    // "Is Blue 50 units weaker than Red? AND Is Green 50 units weaker?"
+    // "Is Blue weaker than Red? AND Is Green weaker AND Is Red stronger than ambient??"
     if (blueGap > dynamicMinGap && greenGap > dynamicMinGap && avgRed < dynamicMaxRed) {
         red_led = 0; // Turn ON
         //printf("Red Detected\r\n");
@@ -320,14 +314,12 @@ double baselineRed() {
     float ambientBlueGap = ambientBlue - ambientRed;
     float ambientGreenGap = ambientGreen - ambientRed;
 
-    // RULE 1: Adjust Min Gap
     // The required gap to detect red must be larger than the natural ambient gap.
-    // We average the ambient gaps and add a buffer (e.g., 30 units) for contrast.
+    // average the ambient gaps and add a buffer for contrast.
     dynamicMinGap = ((ambientBlueGap + ambientGreenGap) / 2.0) + 10.0;
 
-    // RULE 2: Adjust Max Red
     // A red object will make the raw red value drop (stronger signal). 
-    // We set the detection threshold to 85% of the ambient baseline.
+    // Set the detection threshold to 95% of the ambient baseline.
     dynamicMaxRed = ambientRed * 0.95;
 
     //printf("Calibration Done! New MinGap: %.2ld | New MaxRed: %.2ld\r\n", long(dynamicMinGap), long(dynamicMaxRed));
@@ -350,70 +342,89 @@ void colorSensorWorker() {
     }
 }
 
+void controlCar(char cmd)
+{
+  // Select action according to received command
+  switch(cmd)
+  {
+    case 'F': forward(duty); break;   // Move forward 
+    case 'B': reverse(duty); break;  // Move backward 
+    case 'L': turnLeft(duty); break;      // Turn left 
+    case 'R': turnRight(duty); break;     // Turn right 
+    case 'S': fullStop(); break;   // Stop 
+    //default: fullStop(); break;  //default to stopped
+  }
+}
+
 int main()
 {
     stop();
     leftMotor.period(period);
     rightMotor.period(period);
-    double Object_Distance_Front = 30;
     colourSensor.SetMode(TCS3200::SCALE_20);
-    Timer colorCheckTimer;
-    colorCheckTimer.start();
     dynamicMaxRed = baselineRed();
     ultrasonicThread.start(ultrasonicWorker);
     colorThread.start(colorSensorWorker);
-    
-    // 4. Your incredibly fast, uninterrupted Main Loop
+    int state[1] = {0};
+    printBoth("Manual or automatic control? Enter 0 for automatic, 1 for manual");
+    if (bt_serial.readable()) {
+        bt_serial.read(state, 1);
+    }
     while (true) {
-        printf("Front Dist: %d\r\n", int(globalFrontDistance));
-        printf("Side Dist: %d\r\n", int(globalSideDistance));
+        if (state[0] == 0) {
+            printf("Front Dist: %d\r\n", int(globalFrontDistance));
+            //printf("Side Dist: %d\r\n", int(globalSideDistance));
 
-        // Check the flag updated by the background thread
-        if (isStoppedForRed) {
-            fullStop();
-            continue; // Skip the IR logic while red is detected
-        }
-            
-        /*cm and if 20 cm then 5882.35 us time to bounce back*/
-        if (objectDetected) {
-            avoidObstacleHard();
-            continue;
-        }
-        int leftValue = leftIR.read();
-        int rightValue = rightIR.read();
-        int leftTurnValue = leftTurnIR.read();
-        int rightTurnValue = rightTurnIR.read();
-        int middleValue = middleIR.read();
- 
-        // If 90 degree right turn is needed
-        if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 1 && middleValue == 1 && leftTurnValue == 0) || (leftTurnValue == 0 && leftValue == 0 && middleValue == 1 && rightValue == 1 && rightTurnValue == 1 )) {
-            cornerRight(dutyTurnRight);
-        }
-        // If 90 degree left turn is needed
-        if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 0 && middleValue == 1 && leftTurnValue == 1) || (leftTurnValue == 1 && leftValue == 0 && middleValue == 1 && rightValue == 0 && rightTurnValue == 0 )) {
-            cornerLeft(dutyTurnLeft);
-        }
-        // If both sensors are on BLACK, move forward
-        else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && leftTurnValue == 0 && rightTurnValue == 0) {
-            forward(0.1);
+            // Check the flag updated by the background thread
+            if (isStoppedForRed) {
+                fullStop();
+                continue; // Skip the IR logic while red is detected
+            }
+            // Check if the flag updated by background thread
+            if (objectDetected) {
+                avoidObstacleHard();
+                continue;// skip IR Logic when avoiding obstacle
+            }
+            int leftValue = leftIR.read();
+            int rightValue = rightIR.read();
+            int leftTurnValue = leftTurnIR.read();
+            int rightTurnValue = rightTurnIR.read();
+            int middleValue = middleIR.read();
+    
+            // If 90 degree right turn is needed
+            if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 1 && middleValue == 1 && leftTurnValue == 0) || (leftTurnValue == 0 && leftValue == 0 && middleValue == 1 && rightValue == 1 && rightTurnValue == 1 )) {
+                cornerRight(dutyTurnRight);
+            }
+            // If 90 degree left turn is needed
+            if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 0 && middleValue == 1 && leftTurnValue == 1) || (leftTurnValue == 1 && leftValue == 0 && middleValue == 1 && rightValue == 0 && rightTurnValue == 0 )) {
+                cornerLeft(dutyTurnLeft);
+            }
+            // If both sensors are on BLACK, move forward
+            else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && leftTurnValue == 0 && rightTurnValue == 0) {
+                forward(0.1);
 
+            }
+            // Left sensor on black line, turn left
+            else if ( (leftTurnValue == 0 && leftValue == 1 &&  middleValue == 1 && rightValue == 0  &&  rightTurnValue == 0 )|| (leftTurnValue == 1 && leftValue == 1)) {
+                turnLeft(duty);
+            }
+            // Right sensor on black line, turn right
+            else if ( (leftTurnValue == 0 && leftValue == 0 &&  middleValue == 1 && rightValue == 1  &&  rightTurnValue == 0 )|| (rightTurnValue == 1 && rightValue == 1)) {
+                turnRight(duty);
+            }
+                // Both sensors on WHITE, stop
+            else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && rightTurnValue == 1 && leftTurnValue == 1) {
+                stop();
+            }  
         }
-        // Left sensor on black line, turn left
-        else if ( (leftTurnValue == 0 && leftValue == 0 &&  middleValue == 1 && rightValue == 1  &&  rightTurnValue == 0 )|| (leftTurnValue == 1 && leftValue == 1)) {
-            turnLeft(duty);
-        }
-        // Right sensor on black line, turn right
-        else if ( (leftTurnValue == 0 && leftValue == 0 &&  middleValue == 1 && rightValue == 1  &&  rightTurnValue == 0 )|| (rightTurnValue == 1 && rightValue == 1)) {
-            turnRight(duty);
-        }
-             // Both sensors on WHITE, stop
-        else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && rightTurnValue == 1 && leftTurnValue == 1) {
-            stop();
-        }        
-      //  else if (leftValue == 0 && rightValue == 0 && middleValue == 0 && rightTurnValue == 0 && leftTurnValue == 0) {
-     //       reverse(duty);
-     //       wait_us(20000);
-     //       stop();
-    //    }
+        else {
+            char command[1] = {'S'};
+            if (bt_serial.readable()) {
+                bt_serial.read(command, 1);   
+                // Read one character command from Bluetooth
+            }
+            controlCar(command[0]);       
+            // Execute corresponding movement according to command
+        }      
     }
 }

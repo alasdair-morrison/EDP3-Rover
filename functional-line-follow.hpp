@@ -98,36 +98,40 @@ int main()
         int leftTurnValue = leftTurnIR.read();
         int rightTurnValue = rightTurnIR.read();
         int middleValue = middleIR.read();
+        printf("Far Right:%d, Right: %d, Middle: %d, Left: %d, Far Left: %d\r\n", rightTurnValue, rightValue, middleValue, leftValue, leftTurnValue);
  
         // If 90 degree right turn is needed
-        if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 1 && middleValue == 1 && leftTurnValue == 0) || (leftTurnValue == 0 && leftValue == 0 && middleValue == 1 && rightValue == 1 && rightTurnValue == 1 )) {
+        if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 1 && middleValue == 1 && leftTurnValue == 0) || (leftTurnValue == 0 && 
+        leftValue == 0 && middleValue == 1 && rightValue == 1 && rightTurnValue == 1 )) {
+            printf("Cornering Right\r\n");
             cornerRight(dutyTurnRight);
         }
         // If 90 degree left turn is needed
-        if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 0 && middleValue == 1 && leftTurnValue == 1) || (leftTurnValue == 1 && leftValue == 0 && middleValue == 1 && rightValue == 0 && rightTurnValue == 0 )) {
+        if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 0 && middleValue == 1 && leftTurnValue == 1) || (leftTurnValue == 1 && 
+        leftValue == 0 && middleValue == 1 && rightValue == 0 && rightTurnValue == 0 )) {
+            printf("Cornering Left\r\n");
             cornerLeft(dutyTurnLeft);
         }
         // If both sensors are on BLACK, move forward
         else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && leftTurnValue == 0 && rightTurnValue == 0) {
+            printf("Forward\r\n");
             forward(duty - 0.5);
 
         }
+        // Both sensors on WHITE, stop
+        else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && rightTurnValue == 1 && leftTurnValue == 1) {
+            printf("Stopping\r\n");
+            stop();
+        }   
         // Left sensor on black line, turn left
-        else if ( (leftTurnValue == 0 && leftValue == 0 &&  middleValue == 1 && rightValue == 1  &&  rightTurnValue == 0 )|| (leftTurnValue == 1 && leftValue == 1)) {
+        else if ( (leftTurnValue == 0 && leftValue == 1 &&  middleValue == 1 && rightValue == 0  &&  rightTurnValue == 0 )|| (leftTurnValue == 1 && leftValue == 1)) {
+            printf("Turning Left\r\n");
             turnLeft(duty);
         }
         // Right sensor on black line, turn right
         else if ( (leftTurnValue == 0 && leftValue == 0 &&  middleValue == 1 && rightValue == 1  &&  rightTurnValue == 0 )|| (rightTurnValue == 1 && rightValue == 1)) {
+            printf("Turning Right\r\n");
             turnRight(duty);
         }
-             // Both sensors on WHITE, stop
-        else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && rightTurnValue == 1 && leftTurnValue == 1) {
-            stop();
-        }        
-      //  else if (leftValue == 0 && rightValue == 0 && middleValue == 0 && rightTurnValue == 0 && leftTurnValue == 0) {
-     //       reverse(duty);
-     //       wait_us(20000);
-     //       stop();
-    //    }
     }
 }
