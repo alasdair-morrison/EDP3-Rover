@@ -1,8 +1,6 @@
 #undef __ARM_FP
 #include "mbed.h"
 #include "TCS3200.h"
-#include <list>
-#include <numeric>
 
 //Left Motor Pins
 PwmOut leftMotor(PTD4);
@@ -43,7 +41,7 @@ float dutyTurnRight = 0.8;
 float dutyTurnLeft = 0.8;
 
 void pcPrint(const char* msg) {
-    pc_serial.write(msg, strlen(msg));
+    printf("%s", msg);
 }
 
 void btPrint(const char* msg) {
@@ -107,13 +105,13 @@ void stop() {
 
 void cornerLeft(float dutyTurnRight) {
     turnLeft(dutyTurnRight);
-    wait_us(40000);
+    wait_us(35000);
 
 }
 
 void cornerRight(float dutyTurnLeft) {
     turnRight(dutyTurnLeft);
-    wait_us(40000);
+    wait_us(35000);
 
 }
 
@@ -180,7 +178,6 @@ double pingUltrasonic(DigitalOut& trigger, DigitalIn& echo) {
 void ultrasonicWorker() {
     while (true) {
        //printf("Thread Alive! Starting Ping...\r\n"); // PROOF OF LIFE
-        // 1. Ping the Front Sensor
         double front = pingUltrasonic(frontTrigger, frontEcho);
         //if (front < 400.0) { // Filter out bad massive readings
             globalFrontDistance = front;
@@ -216,16 +213,13 @@ bool lineDetected() {
 void avoidObstacleHard() {
     Timer orbitTimer;
 
-    // STEP 1: The Evasion Turn
     // Turn right just enough so the robot clears the front of the object.
-    // (You will need to tune this 400000us / 0.4s value to match your 90-degree turn time)
     cornerRight(duty);
 
     // Stop briefly to let momentum settle before accelerating again
     fullStop();
     wait_us(100000);
 
-    // STEP 2: Lock into the Fixed Arc
     // Set both wheels to drive forward, but make the left wheel slower.
     // This forces the robot to drive in a fixed left-handed circle.
     leftMotor.write(duty - 0.25); // Slower inside wheel
@@ -234,7 +228,6 @@ void avoidObstacleHard() {
     leftForwardControl  = 1; rightForwardControl = 1;
     leftBackwardControl = 0; rightBackwardControl = 0;
 
-    // STEP 3: The "Wait and Seek"
     orbitTimer.start();
     
     // The robot will continuously drive in its blind arc until the IR sensors
@@ -363,68 +356,76 @@ int main()
     rightMotor.period(period);
     colourSensor.SetMode(TCS3200::SCALE_20);
     dynamicMaxRed = baselineRed();
-    ultrasonicThread.start(ultrasonicWorker);
     colorThread.start(colorSensorWorker);
-    int state[1] = {0};
-    printBoth("Manual or automatic control? Enter 0 for automatic, 1 for manual");
-    if (bt_serial.readable()) {
-        bt_serial.read(state, 1);
+    //ultrasonicThread.start(ultrasonicWorker());
+    char state = '0'; 
+    printBoth("Manual or automatic? Enter '0' for Auto, '1' for Manual:\r\n");
+    
+    // Trap the CPU in a loop UNTIL the human presses a key
+    while (!bt_serial.readable() && !pc_serial.readable()) {
+        wait_us(10000); // Small wait to let the CPU breathe
     }
-    while (true) {
-        if (state[0] == 0) {
-            printf("Front Dist: %d\r\n", int(globalFrontDistance));
-            //printf("Side Dist: %d\r\n", int(globalSideDistance));
+    
+    // Read the character the user just sent
+    if (bt_serial.readable()) {
+        bt_serial.read(&state, 1);
+    } else if (pc_serial.readable()) {
+        pc_serial.read(&state, 1);
+    }
+    
+    printBoth("Mode Selected! Starting loop...\r\n");
+    char currentCommand = 'S'; 
 
-            // Check the flag updated by the background thread
+    while (true) {
+        if (state == '0') {
+            printBoth("Automatic Mode");
+            
+            // --- AUTOMATIC LINE FOLLOWING LOGIC ---
             if (isStoppedForRed) {
                 fullStop();
-                continue; // Skip the IR logic while red is detected
+                continue; 
             }
-            // Check if the flag updated by background thread
             if (objectDetected) {
-                avoidObstacleHard();
-                continue;// skip IR Logic when avoiding obstacle
+                objectDetected = false;
+                continue;
             }
+            
             int leftValue = leftIR.read();
             int rightValue = rightIR.read();
             int leftTurnValue = leftTurnIR.read();
             int rightTurnValue = rightTurnIR.read();
             int middleValue = middleIR.read();
     
-            // If 90 degree right turn is needed
             if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 1 && middleValue == 1 && leftTurnValue == 0) || (leftTurnValue == 0 && leftValue == 0 && middleValue == 1 && rightValue == 1 && rightTurnValue == 1 )) {
                 cornerRight(dutyTurnRight);
             }
-            // If 90 degree left turn is needed
-            if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 0 && middleValue == 1 && leftTurnValue == 1) || (leftTurnValue == 1 && leftValue == 0 && middleValue == 1 && rightValue == 0 && rightTurnValue == 0 )) {
+            else if ((leftValue == 1 && rightValue == 1 && rightTurnValue == 0 && middleValue == 1 && leftTurnValue == 1) || (leftTurnValue == 1 && leftValue == 0 && middleValue == 1 && rightValue == 0 && rightTurnValue == 0 )) {
                 cornerLeft(dutyTurnLeft);
             }
-            // If both sensors are on BLACK, move forward
             else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && leftTurnValue == 0 && rightTurnValue == 0) {
-                forward(0.1);
-
+                forward(duty - 0.3);
             }
-            // Left sensor on black line, turn left
+            else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && rightTurnValue == 1 && leftTurnValue == 1) {
+                stop();
+            }   
             else if ( (leftTurnValue == 0 && leftValue == 1 &&  middleValue == 1 && rightValue == 0  &&  rightTurnValue == 0 )|| (leftTurnValue == 1 && leftValue == 1)) {
                 turnLeft(duty);
             }
-            // Right sensor on black line, turn right
             else if ( (leftTurnValue == 0 && leftValue == 0 &&  middleValue == 1 && rightValue == 1  &&  rightTurnValue == 0 )|| (rightTurnValue == 1 && rightValue == 1)) {
                 turnRight(duty);
             }
-                // Both sensors on WHITE, stop
-            else if (leftValue == 1 && rightValue == 1 && middleValue == 1 && rightTurnValue == 1 && leftTurnValue == 1) {
-                stop();
-            }  
         }
-        else {
-            char command[1] = {'S'};
+        
+        // --- MANUAL BLUETOOTH LOGIC ---
+        else if (state == '1') { 
+            printBoth("Manual Mode");
+            // Only update currentCommand IF a new letter arrived
             if (bt_serial.readable()) {
-                bt_serial.read(command, 1);   
-                // Read one character command from Bluetooth
+                bt_serial.read(&currentCommand, 1);   
             }
-            controlCar(command[0]);       
-            // Execute corresponding movement according to command
+            
+            // Continually execute the LAST received command
+            controlCar(currentCommand);       
         }      
     }
 }
